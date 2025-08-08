@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- BUG: Stretched favicon using a non-square image forced into square dimensions -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://s3-eu-west-1.amazonaws.com/tpd/logos/629f4d1b20dae675cf2ee067/0x0.png"
+      sizes="32x32"
+    />
+    <title>Login Page</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .login-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+      }
+
+      .login-container h2 {
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      .password {
+        color: grey; /* BUG: wrong colour */
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.5rem;
+        box-sizing: border-box;
+      }
+
+      .login-btn {
+        width: 100%;
+        padding: 0.75rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 5px; /* BUG: Button slightly offset from inputs */
+      }
+
+      .login-btn:hover {
+        background-color: #0056b3;
+      }
+
+      .error {
+        color: red;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+
+      .buggy-expand {
+        padding: 0.5rem;
+        min-width: 50px;
+        transition: width 0.1s; /* Adds a weird glitchy effect */
+      }
+
+      @media (max-width: 600px) {
+        body {
+          flex-direction: column;
+          align-items: flex-start;
+          padding: 0;
+          margin: 0;
+        }
+
+        .login-container {
+          width: 120%;
+          margin-left: -10%;
+          padding: 1rem;
+          box-shadow: none;
+        }
+
+        .form-group input {
+          width: 150%;
+        }
+
+        .login-btn {
+          width: 200%; /* BUG: Button too wide on mobile */
+          margin-top: 1rem;
+        }
+
+        .login-container h2 {
+          font-size: 2rem;
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <h2>Login</h2>
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            autocomplete="off"
+            class="buggy-expand"
+          />
+        </div>
+        <div class="form-group">
+          <label class="password" for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="off"
+          />
+        </div>
+        <button type="submit" class="login-btn">Login</button>
+        <div class="error" id="errorMessage"></div>
+      </form>
+    </div>
+
+    <script>
+      // BUG: username expands beyond 45 chars
+      document.querySelectorAll(".buggy-expand").forEach((input) => {
+        input.addEventListener("input", () => {
+          if (input.value.length > 35) {
+            input.style.width = `${100 - 35 + input.value.length}%`;
+          }
+        });
+      });
+
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value.trim();
+          const errorMessage = document.getElementById("errorMessage");
+
+          // BUG: Only username is validated; password check skipped
+          if (!username) {
+            errorMessage.textContent =
+              "Please enter both username and pasword."; // BUG: Typo in 'password'
+            return;
+          }
+
+          // BUG: Simulates malformed JSON request if username contains quote or password is missing
+          if (username.includes("'") || username.includes('"') || !password) {
+            try {
+              await fetch("http://httpbin.org/status/400", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: "{username:" + username + ", password:" + password + "}",
+              });
+              errorMessage.textContent = "Malformed request sent (simulated).";
+            } catch (err) {
+              errorMessage.textContent = "Error sending malformed request.";
+            }
+            return;
+          }
+
+          // BUG: Insecure API call using HTTP instead of HTTPS
+          if (username === "admin" && password === "password") {
+            try {
+              const response = await fetch("http://httpbin.org/status/200", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+              });
+
+              if (response.ok) {
+                alert("Login successful (dummy 200)!");
+              } else {
+                errorMessage.textContent =
+                  "Login failed with status " + response.status;
+              }
+            } catch (err) {
+              errorMessage.textContent = "Network error: " + err.message;
+            }
+          } else {
+            errorMessage.textContent = "Incorrect username and password"; // BUG: Another typo in 'password'
+          }
+        });
+    </script>
+  </body>
+</html>
