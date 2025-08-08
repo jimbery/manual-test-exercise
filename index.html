@@ -77,7 +77,6 @@
       .buggy-expand {
         padding: 0.5rem;
         min-width: 50px;
-        transition: width 0.1s; /* Adds a weird glitchy effect */
       }
 
       @media (max-width: 600px) {
@@ -142,7 +141,7 @@
     </div>
 
     <script>
-      // BUG: username expands beyond 45 chars
+      // BUG: username expands beyond 35 chars
       document.querySelectorAll(".buggy-expand").forEach((input) => {
         input.addEventListener("input", () => {
           if (input.value.length > 35) {
